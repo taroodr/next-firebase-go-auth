@@ -1,0 +1,40 @@
+version: '3.5'
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sqls/init:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: firebase-go-auth
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+
+  app:
+    build:
+      context: .
+      target: build
+    depends_on:
+      - db
+    volumes:
+      - ./:/go/app
+      # 認証情報をvolumeとしてマウント、コンテナ内で環境変数として使用可能にする（roでread onlyにしておく）
+      - ./api/go-nextjs-auth-firebase-adminsdk.json:/key.json:ro
+    command: realize start --path="api" --run --no-config
+    ports:
+      - "8080:8080"
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /key.json
+      MYSQL_DB_HOST: db
+      MYSQL_DB: firebase-go-auth
+      MYSQL_PORT: 3306
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    restart: always
+
+volumes:
+  mysql_data:
